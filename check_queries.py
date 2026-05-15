@@ -3,10 +3,10 @@ from enum import Enum
 import re
 import argparse
 from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.engine import Engine
 import pandas as pd
-import pymysql
+from pandas.errors import DatabaseError as PandasDatabaseError
 from rich.progress import track
 
 """
@@ -38,6 +38,9 @@ from rich.progress import track
 
     - No escribas varias queries en la misma línea, esto probablemente cause que ignoren todoas las queries de esa línea
     excepto la última.
+
+    - Para que la correción vaya bien, las columnas de query han de estar en el mismo orden que las columnas de la solución,
+    no hace falta que tengan el mismo nombre.
 
     💻 Para ejecutar este script en windos usando VS Code:
         1. Instala python
@@ -135,7 +138,7 @@ def get_queries(file)->dict[int, tuple[str, list[str]]]:
 
         idx += 1
 
-    return queries        
+    return queries
 
 class QueryResult(Enum):
     ORDER_ERROR = 1
@@ -176,10 +179,19 @@ def check_queries(queries:dict[int, tuple[str, list[str]]], boletin:int)->dict[i
     def check_content(user_result:pd.DataFrame, expected_result:pd.DataFrame) -> bool:
         if len(user_result) != len(expected_result):
             return False
-    
+        if user_result.shape[1] != expected_result.shape[1]:
+            return False
+
+        user_result = user_result.copy()
+        expected_result = expected_result.copy()
+
+        # Normalize column names to positional indices to avoid any naming mismatches
+        user_result.columns = list(range(user_result.shape[1]))
+        expected_result.columns = list(range(expected_result.shape[1]))
+
         user_sorted = user_result.sort_values(by=list(user_result.columns)).reset_index(drop=True)
         expected_sorted = expected_result.sort_values(by=list(expected_result.columns)).reset_index(drop=True)
-        
+
         return user_sorted.equals(expected_sorted)
 
     def check_order(user_result:pd.DataFrame, expected_result:pd.DataFrame) -> bool:
@@ -212,7 +224,11 @@ def check_queries(queries:dict[int, tuple[str, list[str]]], boletin:int)->dict[i
                 #     continue
                 
                 results.append((q, QueryResult.CORRECT))
-            except pymysql.err.ProgrammingError as e:
+            except (
+                PandasDatabaseError,
+                ProgrammingError,
+                OperationalError
+            ) as e:
                 results.append((q, QueryResult.SYNTAX_ERROR))
 
         return True, results
@@ -220,7 +236,7 @@ def check_queries(queries:dict[int, tuple[str, list[str]]], boletin:int)->dict[i
     con_manager = ConnectionManager()
 
     results = {}
-    for key, (database, qs) in track(queries.items(), description="Ejercicios corregidos..."):
+    for key, (database, qs) in track(queries.items(), description="Corrigiendo ejercicios: "):
         if key not in results:
             results[key] = check_exercise(con_manager.get_connection(database), key, qs, boletin)
         else:
@@ -330,12 +346,9 @@ def main():
     with open(args.path, 'r', encoding='utf-8') as file:
         queries = get_queries(file)
 
-    print("Ejecutando y comprobando que las queries son correctas, un segundo...")
     results = check_queries(queries, args.boletin)
 
-    num_queries_have_solution = sum(len(queries[key][1]) for key in results)
-    num_queries_solved = sum(len(v[1]) for v in results.values())
-    assert num_queries_have_solution == num_queries_solved, f"Number of queries for which there is a solution and number of queries solved doesn't match: {num_queries_solved} {num_queries_have_solution}."
+    assert all(len(queries[q][1]) == len(results[q][1]) for q in queries.keys() if results[q][0]), f"Number of queries for which there is a solution and number of queries solved doesn't match."
 
     print_results(results, args.verbose)
 
