@@ -7,6 +7,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.engine import Engine
 import pandas as pd
 import pymysql
+from rich.progress import track
 
 """
     ⚠️ Leer antes de usar!
@@ -43,9 +44,9 @@ import pymysql
         2. Pulsando CTRL + shift + p, pulsa en la opción "Python: Create Environment", elige venv
         y selecciona un interpretador.
         3. Abre la terminal de VS Code, deberías ver ".venv".
-        4. Instala dependencias con "pip install sqlalchemy pandas pymysql"
+        4. Instala dependencias con "pip install sqlalchemy pandas pymysql rich"
         5. Ejecuta el archivo:
-            python .\check_queries.py ..\ tu\ ruta\ a\ boletin1.sql 1
+            python check_queries.py tu_ruta_a_tu_boletin1.sql 1
 
     ❗ Problems
         - Queries like this don't work:
@@ -219,9 +220,8 @@ def check_queries(queries:dict[int, tuple[str, list[str]]], boletin:int)->dict[i
     con_manager = ConnectionManager()
 
     results = {}
-    for key, (database, qs) in queries.items():
+    for key, (database, qs) in track(queries.items(), description="Ejercicios corregidos..."):
         if key not in results:
-            print(key)
             results[key] = check_exercise(con_manager.get_connection(database), key, qs, boletin)
         else:
             if results[key][0]:
