@@ -13,7 +13,7 @@ from rich.progress import track
     ⚠️ Leer antes de usar!
 
     Este script corrige tus ejercicios de SQL de los boletines 1 y 3 del datacamp de Altia. Hace falta
-    estar conectado a la VPN para que este script funciona.
+    estar conectado a la VPN para que este script funcione.
     
     Para que estos ejercicios se corrijan bien ten en cuenta que:
 
@@ -32,10 +32,10 @@ from rich.progress import track
 
     - Ten en cuenta que tus soluciones se ejecutarán en orden cambiando de base de datos cuando aparece una sentencia
     USE de sql. Si el ejercicio X se ejecuta en la base de datos A y el ejercicio X+1 se ejecuta en la base de datos B,
-    tendrás que incluir una sentencia "USE ...;" justo antes del ejericico X+1 para que se cambie de base de datos y se
+    tendrás que incluir una sentencia "USE ...;" antes de las queries del ejericico X+1 para que se cambie de base de datos y se
     puedan ejecutar sus soluciones.
 
-    - No escribas varias queries en la misma línea, esto probablemente cause que ignoren todoas las queries de esa línea
+    - No escribas varias queries en la misma línea, esto probablemente cause que se ignoren todas las queries de esa línea
     excepto la última.
 
     - Para que la correción vaya bien, las columnas de query han de estar en el mismo orden que las columnas de la solución,
@@ -61,7 +61,7 @@ from rich.progress import track
         select ... -- Esta query se ignorará
         -- 3. Enunciado ejercio 3 en basic employees bla bla
         use basic_employees;
-        select ... -- Esta query no se ingorará, se asumirá que es una solución del ejercico 3
+        select ... -- Solución del ejercico 3
         -- 4. Enunciado ejercio 4 en basic employees bla bla
         select ... -- Solución del ejercico 4
 
