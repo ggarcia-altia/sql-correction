@@ -42,6 +42,13 @@ from rich.progress import track
     - Para que la correción vaya bien, las columnas de query han de estar en el mismo orden que las columnas de la solución,
     no hace falta que tengan el mismo nombre.
 
+    - Queries como esta, aunque sean correctas no se corregirán bien por limitaciones de este script:
+        SELECT sal INTO @EmployeeSal 
+        FROM emp 
+        WHERE empno = 7934;
+        SELECT * FROM emp WHERE sal > @EmployeeSal ORDER BY sal;
+
+
     💻 Para ejecutar este script en windos usando VS Code:
         1. Instala python
         2. Pulsando CTRL + shift + p, pulsa en la opción "Python: Create Environment", elige venv
@@ -51,13 +58,6 @@ from rich.progress import track
         5. Ejecuta el archivo:
             python check_queries.py tu_ruta_a_tu_boletin1.sql 1
 
-    ❗ Problems
-        - Queries like this don't work:
-            SELECT sal INTO @EmployeeSal 
-            FROM emp 
-            WHERE empno = 7934;
-            SELECT * FROM emp WHERE sal > @EmployeeSal ORDER BY sal;
-        - On Boletin1_sol_test_sql I removed the ';' on the 21 exercise and I got no syntax error.
 """
 
 DB_CONNECTOR = "mysql+pymysql://user:bootcamp@172.30.1.156:3306"
@@ -94,10 +94,10 @@ def get_queries(file)->tuple[dict[int, tuple[str, list[str]]], int]:
         queries[exercise_num] = (database, [query])
 
     exercise_statement_pattern = r"^--\s*(\d+)\..*"     # Pattern for identifying problem statements
-    use_database_pattern = r"(?i)^\s*use\s+([\w\d_]+);"     # Pattern for identifying 'USE database1;' sql statements
+    use_database_pattern = r"(?i)^\s*use\s+([\w\d_]+);" # Pattern for identifying 'USE database1;' sql statements
     query_pattern = r"(?i)^\s*(?:select|with)\b"        # Pattern for catching queries (solutions to exercises)
-    ignore_pattern = r"(?i)^-- ignore$"
-    end_of_query_pattern = r"^((?!--).)*;"
+    end_of_query_pattern = r"^((?!--).)*;"              # Pattern for checking if query has ended
+    ignore_pattern = r"(?i)^-- ignore$"                 # Pattern for ignoring
 
     current_db, current_exercise_num = None, None
 
