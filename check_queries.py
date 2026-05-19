@@ -326,11 +326,11 @@ def print_results(results:dict[int, tuple[bool, list[tuple[str, QueryResult]]]],
                 print(f"  📝 Exercise {exercise_num}:")
                 current_exercise = exercise_num
             if result == QueryResult.CONTENT_ERROR:
-                print(f"    🔴 Content error:  {query}")
+                print(f"    🔴 Content error:\n{query}")
             elif result == QueryResult.ORDER_ERROR:
-                print(f"    🟡 Order error:    {query}")
+                print(f"    🟡 Order error:\n{query}")
             elif result == QueryResult.SYNTAX_ERROR:
-                print(f"    🟠 Syntax error:   {query}")
+                print(f"    🟠 Syntax error:\n{query}")
 
     # Print summary
     total_exercises = len(results)
@@ -350,7 +350,7 @@ def print_results(results:dict[int, tuple[bool, list[tuple[str, QueryResult]]]],
     print()
     print("─" * 60)
 
-def main():
+def parse_args():
     parser = argparse.ArgumentParser(description="Un script para verifcar que tus queries de SQL son correctas 😊")
     parser.add_argument("path", type=str, help="El path al archivo que contiene tus queries")
     parser.add_argument("boletin", type=int, help="El boletin para el cuál vas a subir las solciones (ha de ser 1 o 3 ya que los boletines 2 y 4 no tiene los ejercicios resueltos)")
@@ -359,12 +359,19 @@ def main():
 
     if not os.path.exists(args.path):
         print(f"❌ No se ha encontrado el archivo '{args.path}'")
-        return
+        return None
     
     if args.boletin != 1 and args.boletin != 3:
         print(f"❌ Solo los boletines 1 y 3 tienen los ejercicios resueltos, por lo tanto has de proporcionar el valor '1' o '3', no '{args.boletin}'")
-        return
+        return None
     
+    return args
+
+def main():
+    args = parse_args()
+    if args is None:
+        return
+
     print("Obteniendo queries...")
     with open(args.path, 'r', encoding='utf-8') as file:
         queries, max_exercise_num = get_queries(file)
