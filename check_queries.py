@@ -69,7 +69,7 @@ def error_message(line_num:int|None, exercise_num:int|None, msg:str) -> str:
         return f"❌ [Error inesperado en el ejercicio {exercise_num}] {msg}\n"
     return f"❌ [Error inesperado] {msg}\n"
 
-def get_queries(file)->dict[int, tuple[str, list[str]]]:
+def get_queries(file)->tuple[dict[int, tuple[str, list[str]]], int]:
     """
         Gets queries from a file. Multiple solutions can be made for the same exercise. It is expected
         that each solution for a exercise is preceeded by a commnent that starts with "-- {exercise_num}.".
@@ -101,6 +101,8 @@ def get_queries(file)->dict[int, tuple[str, list[str]]]:
 
     current_db, current_exercise_num = None, None
 
+    max_exercise_num = 0
+
     queries:dict[int, tuple[str, list[str]]] = {}
 
     idx, lines = 0, file.readlines()
@@ -116,6 +118,7 @@ def get_queries(file)->dict[int, tuple[str, list[str]]]:
         match = re.match(exercise_statement_pattern, line)
         if match:
             current_exercise_num = int(match.group(1))
+            max_exercise_num = max(max_exercise_num, current_exercise_num)
             idx += 1
             continue
 
@@ -142,7 +145,7 @@ def get_queries(file)->dict[int, tuple[str, list[str]]]:
 
         idx += 1
 
-    return queries
+    return queries, max_exercise_num
 
 class QueryResult(Enum):
     ORDER_ERROR = 1
@@ -152,7 +155,7 @@ class QueryResult(Enum):
 
 class ConnectionManager():
     def __init__(self):
-        self.connections = {}
+        self.connections:dict[str, Engine] = {}
 
     def get_connection(self, database:str) -> Engine:
         if database not in self.connections:
@@ -167,7 +170,7 @@ class ConnectionManager():
         
         return self.connections[database]
     
-def check_queries(queries:dict[int, tuple[str, list[str]]], boletin:int)->dict[int, tuple[bool, list[tuple[str, QueryResult]]]]:
+def check_queries(queries:dict[int, tuple[str, list[str]]], max_exercise_num:int, boletin:int)->dict[int, tuple[bool, list[tuple[str, QueryResult]]]]:
     """
         Runs provided queries and verifies they are correct comparing ther content and order with the solution
 
@@ -247,6 +250,15 @@ def check_queries(queries:dict[int, tuple[str, list[str]]], boletin:int)->dict[i
             if results[key][0]:
                 results[key][1] += check_exercise(con_manager.get_connection(database), key, qs, boletin)[1]
 
+    db:Engine = next(iter(con_manager.connections.values()))
+    for i in range(1, max_exercise_num + 1):
+        if i not in results:
+            view = f"solucion_ejercicio_{i}" if boletin == 1 else f"solucion_ejercicio_ventana_{i}"
+            if check_view_exists(db, view):
+                results[i] = (True, [])
+            else:
+                results[i] = (False, [])
+
     return results
 
 def print_results(results:dict[int, tuple[bool, list[tuple[str, QueryResult]]]], verbose:bool):
@@ -304,16 +316,6 @@ def print_results(results:dict[int, tuple[bool, list[tuple[str, QueryResult]]]],
             elif result == QueryResult.SYNTAX_ERROR:
                 print(f"    🟠 Syntax error:   {query}")
 
-    # Print exercises with solution but no queries run
-    if no_queries_run:
-        print("─" * 60)
-        print(f"🚫  Exercises with a solution but no queries submitted: {', '.join(map(str, no_queries_run))}")
-
-    # Print no solution
-    if no_solution:
-        print("─" * 60)
-        print(f"⚠️  Exercises with no solution: {', '.join(map(str, no_solution))}")
-
     # Print summary
     total_exercises = len(results)
     exercises_with_solution = total_exercises - len(no_solution)
@@ -323,10 +325,11 @@ def print_results(results:dict[int, tuple[bool, list[tuple[str, QueryResult]]]],
     print(f"  {'✅' if correct_exercises == exercises_attempted else '❌'}  Correct exercises:  {correct_exercises} / {exercises_attempted}")
     print(f"  {'✅' if correct_queries == total_queries else '❌'}  Correct queries:    {correct_queries} / {total_queries}")
     if no_queries_run:
-        print(f"  🚫  No queries run:     {len(no_queries_run)} exercise(s) → {', '.join(map(str, no_queries_run))}")
+        print(f"  🚫  { 'Exercises with a solution but no queries submitted:':<55} {len(no_queries_run)} exercise(s) → {', '.join(map(str, no_queries_run))}")
     if no_solution:
-        print(f"  ⚠️   No solution:        {len(no_solution)} exercise(s) → {', '.join(map(str, no_solution))}")
+        print(f"  ⚠️   { 'Exercises with no solution:':<55} {len(no_solution)} exercise(s) → {', '.join(map(str, no_solution))}")
     if correct_queries == total_queries and correct_exercises == exercises_attempted and not no_queries_run:
+        print("\n")
         print("🟢 🥳🎉Enhorabuena!🎉🥳 🟢")
     print()
     print("─" * 60)
@@ -348,9 +351,9 @@ def main():
     
     print("Obteniendo queries...")
     with open(args.path, 'r', encoding='utf-8') as file:
-        queries = get_queries(file)
+        queries, max_exercise_num = get_queries(file)
 
-    results = check_queries(queries, args.boletin)
+    results = check_queries(queries, max_exercise_num, args.boletin)
 
     assert all(len(queries[q][1]) == len(results[q][1]) for q in queries.keys() if results[q][0]), f"Number of queries for which there is a solution and number of queries solved doesn't match."
 

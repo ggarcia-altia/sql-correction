@@ -107,8 +107,8 @@ SELECT deptno, COUNT(empno) FROM emp GROUP BY deptno HAVING MIN(sal) >= 1000;
 SELECT * FROM solucion_ejercicio_20;
 
 -- 21. Muestra los departamentos y los trabajos donde hay por lo menos dos trabajadores con ese puesto de trabajo.
-SELECT deptno, job FROM emp GROUP BY deptno, job HAVING COUNT(job) > 1--;
-SELECT * FROM solucion_ejercicio_21;
+-- SELECT deptno, job FROM emp GROUP BY deptno, job HAVING COUNT(job) > 1--;
+--SELECT * FROM solucion_ejercicio_21;
 
 -- 22. Halla los datos de los empleados cuyo salario es mayor que el del empleado de código 7934, ordenando por el 
 -- salario.
