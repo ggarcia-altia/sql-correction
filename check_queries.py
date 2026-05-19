@@ -19,14 +19,13 @@ from rich.progress import track
 
     - Puedes escribir diferentes soluciones para el mismo ejercicio y todas se corregirán.
 
+    - Puedes añadir tus propios comentarios, tus queries pueden ocupar múltiples líneas y puedes dejar líneas en blanco.
+
     - Las queries para resolver determinado ejercicio han de estar debajo del enunciado del ejercico. Si una query
     que resuelve el ejercicio X tiene como enunciado más cercano encima de ella el enunciado Y, se interpretará que
     es una solución del ejercicio Y. Se interpreta que se está resolviendo un enunciado cuando se encuentra una línea
     con el siguiente formato "-- X.*", donde X es el número del ejercicio (el asterisco * indica que puede haber más
-    carácteres después de esa cadena, serán ignorados). Es decir, se entiende que las queries leídas pertenecen al
-    ejercicio para el cual apareció la última línea de ese formato.
-
-    - Puedes añadir tus propios comentarios, tus queries pueden ocupar múltiples líneas y puedes dejar líneas en blanco.
+    carácteres después de esa cadena, serán ignorados). Ejemplo:
 
     - Si quieres que unas queries se ignoren escribe "-- ignore" y todas las queries que estén entre este comentario y
     el enunciado del siguiente ejercicio serán ingoradas.
@@ -34,7 +33,7 @@ from rich.progress import track
     - Ten en cuenta que tus soluciones se ejecutarán en orden cambiando de base de datos cuando aparece una sentencia
     USE de sql. Si el ejercicio X se ejecuta en la base de datos A y el ejercicio X+1 se ejecuta en la base de datos B,
     tendrás que incluir una sentencia "USE ...;" justo antes del ejericico X+1 para que se cambie de base de datos y se
-    puedan ejecutar las soluciones del ejercicio X+1.
+    puedan ejecutar sus soluciones.
 
     - No escribas varias queries en la misma línea, esto probablemente cause que ignoren todoas las queries de esa línea
     excepto la última.
@@ -48,6 +47,23 @@ from rich.progress import track
         WHERE empno = 7934;
         SELECT * FROM emp WHERE sal > @EmployeeSal ORDER BY sal;
 
+    Ejemplo:
+        use basic_eployees;
+        -- 1. Enunciado ejercico 1 bla bla (puedes cambiar el enunicado si quieres con tal de que no cambies el -- 1.)
+        -- Puedes añadir comentarios aquí, serán ignorados siempre que no empiecen por -- X.
+        select ... -- Query del ejercicio 1
+        select ... -- Otra query del ejercicio 1
+
+        -- 2. Enunciado ejercico 2 en base de datos jardinería bla bla bla
+        use jardineria;
+        select ... -- Query del ejercicio 2
+        -- ignore
+        select ... -- Esta query se ignorará
+        -- 3. Enunciado ejercio 3 en basic employees bla bla
+        use basic_employees;
+        select ... -- Esta query no se ingorará, se asumirá que es una solución del ejercico 3
+        -- 4. Enunciado ejercio 4 en basic employees bla bla
+        select ... -- Solución del ejercico 4
 
     💻 Para ejecutar este script en windos usando VS Code:
         1. Instala python
@@ -55,7 +71,7 @@ from rich.progress import track
         y selecciona un interpretador.
         3. Abre la terminal de VS Code, deberías ver ".venv".
         4. Instala dependencias con "pip install sqlalchemy pandas pymysql rich"
-        5. Ejecuta el archivo:
+        5. Ejecuta el archivo (cambiando la ruta y el número de boletin como corresponda):
             python check_queries.py tu_ruta_a_tu_boletin1.sql 1
 
 """
