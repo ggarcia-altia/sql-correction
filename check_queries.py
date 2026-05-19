@@ -69,7 +69,7 @@ def error_message(line_num:int|None, exercise_num:int|None, msg:str) -> str:
         return f"❌ [Error inesperado en el ejercicio {exercise_num}] {msg}\n"
     return f"❌ [Error inesperado] {msg}\n"
 
-def get_queries(file)->tuple[dict[int, tuple[str, list[str]]], set[int]]:
+def get_queries(file)->dict[int, tuple[str, list[str]]]:
     """
         Gets queries from a file. Multiple solutions can be made for the same exercise. It is expected
         that each solution for a exercise is preceeded by a commnent that starts with "-- {exercise_num}.".
@@ -102,7 +102,6 @@ def get_queries(file)->tuple[dict[int, tuple[str, list[str]]], set[int]]:
     current_db, current_exercise_num = None, None
 
     queries:dict[int, tuple[str, list[str]]] = {}
-    exercises = set()
 
     idx, lines = 0, file.readlines()
     while idx < len(lines):
@@ -117,7 +116,6 @@ def get_queries(file)->tuple[dict[int, tuple[str, list[str]]], set[int]]:
         match = re.match(exercise_statement_pattern, line)
         if match:
             current_exercise_num = int(match.group(1))
-            exercises.add(current_exercise_num)
             idx += 1
             continue
 
@@ -144,7 +142,7 @@ def get_queries(file)->tuple[dict[int, tuple[str, list[str]]], set[int]]:
 
         idx += 1
 
-    return queries, exercises
+    return queries
 
 class QueryResult(Enum):
     ORDER_ERROR = 1
@@ -350,7 +348,7 @@ def main():
     
     print("Obteniendo queries...")
     with open(args.path, 'r', encoding='utf-8') as file:
-        queries, _= get_queries(file)
+        queries = get_queries(file)
 
     results = check_queries(queries, args.boletin)
 
