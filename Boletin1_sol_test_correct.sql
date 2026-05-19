@@ -76,8 +76,7 @@ SELECT * FROM solucion_ejercicio_16;
 
 -- 17. Muestra los proyectos en los que trabaja al menos tres empleados y cuántas horas trabajan en dichos proyectos.
 SELECT prono, SUM(hours) FROM emppro GROUP BY prono HAVING COUNT(empno) > 2;
--- Comentario mio :)
-SELECT prono, empno, hours
+SELECT prono, hours
 FROM (
     SELECT 
         prono, 
@@ -107,7 +106,7 @@ SELECT deptno, COUNT(empno) FROM emp GROUP BY deptno HAVING MIN(sal) >= 1000;
 SELECT * FROM solucion_ejercicio_20;
 
 -- 21. Muestra los departamentos y los trabajos donde hay por lo menos dos trabajadores con ese puesto de trabajo.
-SELECT deptno, job FROM emp GROUP BY deptno, job HAVING COUNT(job) > 1--;
+SELECT deptno, job FROM emp GROUP BY deptno, job HAVING COUNT(job) > 1;
 SELECT * FROM solucion_ejercicio_21;
 
 -- 22. Halla los datos de los empleados cuyo salario es mayor que el del empleado de código 7934, ordenando por el 
@@ -144,7 +143,7 @@ SELECT * FROM solucion_ejercicio_23;
 SELECT * FROM emp 
 WHERE sal > (SELECT AVG(sal) FROM emp);
 
-SELECT *
+SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno
 FROM (
     SELECT *, 
            AVG(sal) OVER () as avg_sal
@@ -227,13 +226,14 @@ INNER JOIN (
 SELECT * FROM solucion_ejercicio_30;
 
 -- 31. Para cada puesto de trabajo el/los empleados que más ganan.
-SELECT e.job, e.empno, e.sal
+SELECT e.empno, e.job, e.sal
 FROM emp e
 INNER JOIN (
     SELECT job, MAX(sal) as max_sal
     FROM emp
     GROUP BY job
 ) m ON e.job = m.job AND e.sal = m.max_sal;
+SELECT * FROM solucion_ejercicio_31;
 
 -- 32. ¿Qué empleados trabajan en ciudades de más de cinco letras? Ordena el resultado inversamente por ciudades y 
 -- normalmente por los nombres de los empleados.
@@ -319,7 +319,7 @@ SELECT * FROM solucion_ejercicio_43;
 
 -- 44. Muestra para cada proyecto cuántas horas trabajan en total todos los empleados que tienen un salario superior al 
 -- salario medio de la empresa. Muestra el nombre del proyecto.
-SELECT p.pname , SUM(ep.hours)
+SELECT p.prono, p.pname , SUM(ep.hours)
 FROM pro p
 JOIN emppro ep ON ep.prono = p.prono
 JOIN emp e ON ep.empno= e.empno
@@ -333,12 +333,13 @@ SELECT d.deptno, d.dname, MAX(e.sal), MIN(e.sal),  MAX(e.sal) - MIN(e.sal), COUN
 FROM dept d
 LEFT JOIN pro p ON d.deptno = p.deptno
 LEFT JOIN emp e ON d.deptno = e.deptno
-GROUP BY d.deptno;
+GROUP BY d.deptno
+having COUNT(DISTINCT p.prono) > 0;
 SELECT * FROM solucion_ejercicio_45;
 
 -- 46. Considerando empleados con salario menor de 5000, halla la media de los salarios de los departamentos cuyo 
 -- salario mínimo supera a 900. Muestra también el código y el nombre de los departamentos.
-SELECT d.dname, d.deptno, AVG(e.sal)
+SELECT d.deptno, d.dname, AVG(e.sal)
 FROM dept d
 JOIN emp e ON d.deptno = e.deptno
 WHERE e.sal < 5000
@@ -348,7 +349,7 @@ SELECT * FROM solucion_ejercicio_46;
 
 -- 47. Lista los empleados que tengan el mayor salario de su departamento, mostrando el nombre del empleado, su salario 
 -- y el nombre del departamento.
-SELECT e.ename, d.dname, sub.max
+SELECT e.ename, sub.max, d.dname
 FROM emp e
 JOIN dept d ON d.deptno = e.deptno
 JOIN (
@@ -446,7 +447,7 @@ JOIN emp e2 ON e1.empno = e2.mgr
 GROUP BY d.deptno
 ORDER BY count DESC LIMIT 1;
 
-SELECT d.dname, COUNT(DISTINCT e1.empno) as count
+SELECT d.deptno, COUNT(DISTINCT e1.empno) as count
 FROM dept d
 LEFT JOIN emp e1 ON d.deptno = e1.deptno
 LEFT JOIN emp e2 ON e1.empno = e2.mgr
@@ -455,20 +456,20 @@ GROUP BY d.deptno
 ORDER BY count DESC LIMIT 1;
 
 
-SELECT 
-    d.dname, 
-    COUNT(s.mgr) AS supervisor_count
-FROM dept d
-LEFT JOIN (
-    SELECT DISTINCT mgr 
-    FROM emp 
-    WHERE mgr IS NOT NULL
-) s ON d.deptno = (SELECT deptno FROM emp WHERE empno = s.mgr)
-GROUP BY d.dname
-ORDER BY supervisor_count;
+-- SELECT 
+--    d.deptno, 
+--    COUNT(s.mgr) AS supervisor_count
+-- FROM dept d
+-- LEFT JOIN (
+--    SELECT DISTINCT mgr 
+--    FROM emp 
+--    WHERE mgr IS NOT NULL
+-- ) s ON d.deptno = (SELECT deptno FROM emp WHERE empno = s.mgr)
+-- GROUP BY d.dname
+-- ORDER BY supervisor_count;
 
 SELECT 
-    d.dname, 
+    d.deptno, 
     COUNT(s.mgr) AS supervisor_count
 FROM dept d
 LEFT JOIN (
@@ -488,7 +489,7 @@ HAVING supervisor_count = (
 
 WITH DeptCounts AS (
     SELECT 
-        d.dname, 
+        d.deptno, 
         COUNT(DISTINCT e1.empno) AS supervisor_count,
         RANK() OVER (ORDER BY COUNT(DISTINCT e1.empno) DESC) as rnk
     FROM dept d
@@ -496,14 +497,14 @@ WITH DeptCounts AS (
 	LEFT JOIN emp e2 ON e1.empno = e2.mgr
 	WHERE e2.empno IS NOT NULL OR e2.empno IS NULL AND e1.empno IS NULL    GROUP BY d.dname
 )
-SELECT dname, supervisor_count
+SELECT deptno, supervisor_count
 FROM DeptCounts
 WHERE rnk = 1;
 
 SELECT * FROM solucion_ejercicio_55;
 
 -- 56. Nombres de empleados que trabajan solos en algún proyecto
-SELECT e.empno, e.ename
+SELECT e.ename
 FROM emp e
 NATURAL JOIN emppro ep
 WHERE ep.prono IN (
@@ -513,7 +514,7 @@ WHERE ep.prono IN (
 	HAVING COUNT(empno) = 1
 );
 
-SELECT empno, ename
+SELECT ename
 FROM (
     SELECT 
         e.empno, 
@@ -611,7 +612,7 @@ SELECT * FROM solucion_ejercicio_60;
 
 -- 61. Para cada departamento que tenga, por lo menos, dos empleados sin comisión, muestra el nombre del departamento, y 
 -- cuántos empleados tiene en total (con y sin comisión).
-SELECT d.dname, COUNT(e.empno)
+SELECT d.deptno, d.dname, COUNT(e.empno)
 FROM dept d
 NATURAL JOIN emp e
 WHERE d.deptno IN (
@@ -623,7 +624,7 @@ WHERE d.deptno IN (
 )
 GROUP BY d.deptno;
 
-SELECT d.dname, COUNT(e.empno)
+SELECT d.deptno, d.dname, COUNT(e.empno)
 FROM dept d
 NATURAL JOIN emp e
 WHERE EXISTS (
@@ -642,7 +643,7 @@ WITH TargetDepts AS (
     GROUP BY deptno
     HAVING COUNT(*) > 1
 )
-SELECT d.dname, COUNT(e.empno) AS total_employees
+SELECT d.deptno, d.dname, COUNT(e.empno) AS total_employees
 FROM dept d
 JOIN emp e ON d.deptno = e.deptno
 JOIN TargetDepts td ON d.deptno = td.deptno
@@ -680,8 +681,7 @@ WITH RankedLocations AS (
 )
 SELECT 
     loc, 
-    total_hours, 
-    rnk
+    total_hours
 FROM RankedLocations
 WHERE rnk = 1;
 
@@ -689,7 +689,7 @@ SELECT * FROM solucion_ejercicio_62;
 
 -- 63. Muestra para cada proyecto su código y, de los empleados que trabajan en dicho proyecto, el nombre del empleado 
 -- que más gana de cada puesto de trabajo.
-SELECT p.prono, e.job, e.ename, e.sal
+SELECT p.prono, e.job, e.empno, e.ename, e.sal
 FROM pro p
 NATURAL JOIN emppro ep
 JOIN emp e ON e.empno = ep.empno
@@ -702,19 +702,20 @@ JOIN (
 ) as s ON s.prono = p.prono AND e.job = s.job AND e.sal = s.max_sal
 ORDER BY ename;
 
-SELECT * FROM (
-	SELECT p.prono,
-		e.job,
-		e.ename,
-		RANK() OVER (
-	    	PARTITION BY p.prono, e.job 
-	    	ORDER BY e.sal DESC
-	   	) as rnk
-	FROM pro p
-	NATURAL JOIN emppro ep
-	JOIN emp e ON ep.empno = e.empno
-) ranked WHERE rnk = 1
-ORDER BY ename;
+-- SELECT prono, job, empno, ename FROM (
+-- 	SELECT p.prono,
+-- 		e.job,
+-- 		e.empno,
+-- 		e.ename,
+-- 		RANK() OVER (
+-- 	    	PARTITION BY p.prono, e.job 
+-- 	    	ORDER BY e.sal DESC
+-- 	   	) as rnk
+-- 	FROM pro p
+-- 	NATURAL JOIN emppro ep
+-- 	JOIN emp e ON ep.empno = e.empno
+-- ) ranked WHERE rnk = 1
+-- ORDER BY ename;
 
 SELECT * FROM solucion_ejercicio_63 ORDER BY ename;
 
@@ -725,8 +726,8 @@ FROM (
 	SELECT e.empno, e.ename, p.prono, p.pname, emp.hours,
 		RANK() OVER(PARTITION BY e.empno ORDER BY emp.hours DESC) as rnk
 	FROM emp e
-	NATURAL LEFT JOIN emppro emp
-	LEFT JOIN pro p ON p.prono = emp.prono
+	NATURAL JOIN emppro emp
+    JOIN pro p ON p.prono = emp.prono
 ) sub WHERE rnk = 1;
 
 SELECT * FROM solucion_ejercicio_64 ;
@@ -757,7 +758,7 @@ SELECT * FROM solucion_ejercicio_66;
 
 -- 67. Muestra el nombre y trabajo de los empleados que son supervisores y que tienen el mismo trabajo que todos sus 
 -- subordinados
-SELECT e1.ename, e1.job
+SELECT e1.empno, e1.ename, e1.job
 FROM emp e1
 JOIN emp e2 ON e1.empno = e2.mgr AND e1.job = e2.job;
 
@@ -775,7 +776,7 @@ GROUP BY d.deptno;
 SELECT * FROM solucion_ejercicio_68;
 
 -- 69. Muestra el nombre de los departamentos con más de tres empleados de los cuales al menos dos son jefes
-SELECT d.deptno, d.dname,  COUNT(DISTINCT e1.empno), COUNT(DISTINCT e2.mgr)
+SELECT d.deptno, d.dname,  COUNT(DISTINCT e2.mgr), COUNT(DISTINCT e1.empno)
 FROM dept d
 NATURAL LEFT JOIN emp e1
 LEFT JOIN emp e2 ON e1.empno = e2.mgr
@@ -786,23 +787,30 @@ SELECT * FROM solucion_ejercicio_69;
 
 -- 70. Para cada jefe, muestra su nombre y cuántos empleados supervisa en departamentos diferentes al suyo. Si un jefe 
 -- no supervisa a ningún empleado de otro departamento, muestra un cero.
-SELECT e1.ename, COUNT(e2.empno)
-FROM emp e1
-LEFT JOIN emp e2 ON e1.empno = e2.mgr AND e1.deptno != e2.deptno
-GROUP BY e1.empno;
+-- SELECT e1.ename, COUNT(e2.empno)
+-- FROM emp e1
+-- LEFT JOIN emp e2 ON e1.empno = e2.mgr AND e1.deptno != e2.deptno
+-- GROUP BY e1.empno;
 
-SELECT * FROM solucion_ejercicio_70;
+-- SELECT * FROM solucion_ejercicio_70;
 
-SELECT e1.ename, COUNT(e2.empno)
-FROM emp e1
-LEFT JOIN emp e2 ON e1.empno = e2.mgr AND e1.deptno != e2.deptno
-WHERE e1.empno IN (SELECT mgr FROM emp WHERE mgr IS NOT NULL)
-GROUP BY e1.empno, e1.ename;
+-- SELECT e1.empno, e1.ename, COUNT(e2.empno)
+-- FROM emp e1
+-- LEFT JOIN emp e2 ON e1.empno = e2.mgr AND e1.deptno != e2.deptno
+-- WHERE e1.empno IN (SELECT mgr FROM emp WHERE mgr IS NOT NULL)
+-- GROUP BY e1.empno, e1.ename;
+
+select e1.empno, e1.ename, sum(e1.deptno != e2.deptno)
+from emp e1
+join emp e2 on e1.empno = e2.mgr
+group by e1.empno, e1.ename;
 
 -- 71. Muestra los empleados contratados en Junio o en el año 1982.
 SELECT * FROM emp WHERE YEAR(hiredate) = 1982 OR MONTH(hiredate) = 6;
 SELECT * FROM solucion_ejercicio_71;
 
+-- ignore
+select "Hello world" from emp;
 
 -- 72. Obtén la salida siguiente:
 -- CODIGO	|	NOMBRE Y EMPLEO
@@ -812,6 +820,10 @@ SELECT * FROM solucion_ejercicio_71;
 -- ...		|	...
 SELECT empno, CONCAT(ename, ' trabaja de ', job) FROM emp;
 
+-- IGNORE
+
+select "hola hola" from emp;
+
 -- 73. (DB jardineria) Muestra el código del pedido, los días que tardó en entregarse 
 -- cada pedido y etiqueta los que fueron entregados con retraso o al día.
 USE jardineria;
@@ -820,10 +832,8 @@ SELECT
 	codigo_pedido,
 	TIMESTAMPDIFF(DAY, fecha_pedido, fecha_entrega),
 	CASE 
-        WHEN fecha_entrega > fecha_esperada THEN 'delayed'
-        WHEN fecha_entrega = fecha_esperada THEN 'on time'
-        WHEN fecha_entrega < fecha_esperada THEN 'soon' -- or 'early'
-        ELSE 'pending'
+        WHEN fecha_entrega > fecha_esperada THEN 'ENTREGADO CON RETRASO'
+        ELSE 'ENTREGADO AL DIA'
     END AS status
 FROM pedido
 WHERE fecha_entrega IS NOT NULL;
@@ -848,10 +858,16 @@ SELECT * FROM solucion_ejercicio_75;
 
 -- 76. (DB jardineria) Pedidos que se hicieron el mismo mes de cada año. Ordenados por año y por mes.
 -- Idk what this is asking for?
-SELECT p1.*
-FROM pedido p1
-JOIN pedido p2 ON MONTH(p1.fecha_entrega) = MONTH(p2.fecha_entrega) AND YEAR(p1.fecha_entrega) = YEAR(p2.fecha_entrega)
-ORDER BY fecha_pedido DESC;
+SELECT *
+FROM pedido p
+where exists (
+	select 1
+	from pedido
+	where MONTH(p.fecha_pedido) = MONTH(fecha_pedido) and
+		YEAR(p.fecha_pedido) = YEAR(fecha_pedido) and
+		p.codigo_pedido != codigo_pedido
+	)
+ORDER BY YEAR(fecha_pedido), MONTH(fecha_pedido) asc;
 
 SELECT * FROM solucion_ejercicio_76;
 
@@ -878,7 +894,7 @@ SELECT * FROM solucion_ejercicio_77;
 -- y el nombre del proyecto, y el número de horas.
 USE basic_employees;
 
-SELECT e.empno, e.ename, e.sal, p.prono, p.pname, ep.hours
+SELECT e.empno, e.ename, e.sal, p.prono, ep.hours
 FROM emp e
 NATURAL JOIN emppro ep
 JOIN pro p ON ep.prono = p.prono;
@@ -902,7 +918,7 @@ SELECT * FROM solucion_ejercicio_79;
 -- pertenece ese mes.
 -- Meses sin pedidos (con año visible)
 SELECT 
-    CONCAT(all_months.anio, '-', all_months.mes) as mes
+    CONCAT(all_months.anio, '-', LPAD(all_months.mes,2, '0')) as mes
 FROM (
     SELECT 
         YEAR(fecha_pedido) AS anio,
@@ -939,9 +955,9 @@ SELECT * FROM solucion_ejercicio_81;
 -- 82. Realiza un equijoin de las tablas emp y dept.
 USE basic_employees;
 
-SELECT *
-FROM emp 
-NATURAL JOIN dept;
+SELECT e.*, d.*
+FROM emp e
+NATURAL JOIN dept d;
 
 SELECT * FROM solucion_ejercicio_82;
 
@@ -984,12 +1000,12 @@ SELECT * FROM solucion_ejercicio_84 ORDER BY cod_empleado;
 -- ...		|	...		|	...		|	...
 SELECT empno, ename, deptno, dname
 FROM emp
-NATURAL JOIN dept ORDER BY deptno;
+NATURAL RIGHT JOIN dept ORDER BY deptno;
 
 SELECT * FROM solucion_ejercicio_85;
 
 -- 86. Obtén los salarios mínimos y el código de cada departamento.
-SELECT dname, MIN(sal)
+SELECT deptno, MIN(sal)
 FROM dept
 NATURAL JOIN emp
 GROUP BY dname;
@@ -1027,14 +1043,14 @@ JOIN emp e3 ON e1.empno = e3.mgr
 WHERE e3.sal > 1000 AND e1.mgr IS NOT NULL
 GROUP BY e1.empno;
 
-SELECT
-    e1.empno,
-    MAX(e2.sal)                                  AS max_sal,
-    MIN(CASE WHEN e2.sal > 1000 THEN e2.sal END) AS min_sal
-FROM emp e1
-JOIN emp e2 ON e1.empno = e2.mgr
-WHERE e1.mgr IS NOT NULL
-GROUP BY e1.empno;
+-- SELECT
+--     e1.empno,
+--     MAX(e2.sal)                                  AS max_sal,
+--     MIN(CASE WHEN e2.sal > 1000 THEN e2.sal END) AS min_sal
+-- FROM emp e1
+-- JOIN emp e2 ON e1.empno = e2.mgr
+-- WHERE e1.mgr IS NOT NULL
+-- GROUP BY e1.empno;
 
 SELECT * FROM solucion_ejercicio_89;
 
@@ -1067,20 +1083,25 @@ JOIN (
 SELECT * FROM solucion_ejercicio_91;
 
 -- 92. Obtén el nombre, salario y comisión de los empleados que son supervisores.
-SELECT ename, sal, comm
-FROM emp
-WHERE empno IN (
-	SELECT mgr
-	FROM emp
-	WHERE mgr IS NOT NULL
-) ORDER BY ename;
+-- SELECT ename, sal, comm
+-- FROM emp
+-- WHERE empno IN (
+-- 	SELECT mgr
+-- 	FROM emp
+-- 	WHERE mgr IS NOT NULL
+-- ) ORDER BY ename;
 
-SELECT e1.ename, e1.sal, e1.comm
+-- SELECT e1.ename, e1.sal, e1.comm
+-- FROM emp e1
+-- WHERE EXISTS (SELECT 1 FROM emp e2 WHERE e2.mgr = e1.empno)
+-- ORDER BY e1.ename;
+
+SELECT * FROM solucion_ejercicio_92 ORDER BY ename;
+
+select e1.ename, e1.sal, e1.comm
 FROM emp e1
-WHERE EXISTS (SELECT 1 FROM emp e2 WHERE e2.mgr = e1.empno)
-ORDER BY e1.ename;
-
-SELECT DISTINCT * FROM solucion_ejercicio_92 ORDER BY ename;
+join emp e2 on e1.empno = e2.mgr
+order by e1.ename;
 
 -- 93. Obtén el nombre, salario y comisión de los empleados que no son supervisores.
 SELECT e.ename, e.sal, e.comm
@@ -1155,7 +1176,7 @@ SELECT * FROM solucion_ejercicio_98;
 -- nombre, tanto del departamento como del proyecto.
 SELECT d.deptno, d.dname, p.prono, p.pname, d.loc
 FROM dept d
-JOIN pro p ON d.deptno = p.deptno AND d.loc = p.loc
+JOIN pro p ON d.deptno = p.deptno AND d.loc = p.loc;
 
 SELECT * FROM solucion_ejercicio_99;
 
@@ -1221,7 +1242,7 @@ SELECT * FROM solucion_ejercicio_102 ORDER BY empno;
 -- 103. Datos de los empleados vinculados a un proyecto (código, nombre y salario), con el código y nombre de los 
 -- departamentos que están responsabilizados de esos proyectos, y el código y nombre de los departamentos a los que 
 -- pertenecen los empleados involucrados.
-SELECT e.empno, e.ename, e.sal, ep.hours, p.prono, p.pname, d.deptno, d.dname, d1.deptno, d1.dname
+SELECT e.empno, e.ename, e.sal, p.prono, d.deptno, d.dname, d1.deptno, d1.dname
 FROM emp e
 NATURAL JOIN emppro ep
 JOIN pro p ON ep.prono = p.prono
@@ -1330,8 +1351,8 @@ SELECT
     e.ename, 
     e.sal, 
     e.deptno, 
-    e.sal - m.m_sal AS diff, 
-    m.m_sal
+    m.m_sal,
+    e.sal - m.m_sal AS diff
 FROM emp e
 CROSS JOIN min_sal_cte m
 WHERE e.sal > m.m_sal
@@ -1343,8 +1364,8 @@ SELECT * FROM (
         ename, 
         sal, 
         deptno, 
-        sal - MIN(sal) OVER() AS diff, 
-        MIN(sal) OVER() AS min_sal
+        MIN(sal) OVER() AS min_sal,
+        sal - MIN(sal) OVER() AS diff
     FROM emp
 ) t
 WHERE sal > min_sal
@@ -1501,7 +1522,7 @@ FROM (
     FROM emp e
     JOIN dept d ON e.deptno = d.deptno
     GROUP BY d.dname, d.deptno
-)
+) s
 WHERE avg_sal = max_avg;
 
 -- Alternativa 3 (sin utilizar ningún join):
@@ -1526,7 +1547,7 @@ order by avg_sal desc limit 1;
 SELECT * FROM solucion_ejercicio_119;
 
 -- 120. Obtén el empleado con el tercer salario más alto, o el cuarto, etc.
-SELECT *
+SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno
 FROM (
     SELECT 
         *,
@@ -1535,7 +1556,7 @@ FROM (
 ) as s
 WHERE rnk = 3;
 
-SELECT *
+SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno
 FROM emp e
 WHERE 2 = (
     SELECT COUNT(DISTINCT sal)
@@ -1543,7 +1564,7 @@ WHERE 2 = (
     WHERE sal > e.sal
 );
 
-SELECT *
+SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno
 FROM emp
 ORDER BY sal DESC
 LIMIT 1 OFFSET 3;
@@ -1551,7 +1572,7 @@ LIMIT 1 OFFSET 3;
 SELECT * FROM solucion_ejercicio_120;
 
 -- 121. Obteén los empleados con los dos salarios más altos, o con los cuatro, etc.
-SELECT *
+SELECT empno, ename, sal
 FROM (
     SELECT 
         *,
@@ -1560,15 +1581,15 @@ FROM (
 ) as s
 WHERE rnk < 5;
 
-SELECT *
-FROM emp e
-WHERE (
-    SELECT COUNT(DISTINCT sal)
-    FROM emp
-    WHERE sal > e.sal
-) between 1 and 3;
+-- SELECT empno, ename, sal
+-- FROM emp e
+-- WHERE (
+--     SELECT COUNT(DISTINCT sal)
+--     FROM emp
+--     WHERE sal > e.sal
+-- ) between 1 and 3;
 
-SELECT *
+SELECT empno, ename, sal
 FROM emp
 ORDER BY sal DESC
 LIMIT 5;

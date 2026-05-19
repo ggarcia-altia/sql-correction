@@ -57,6 +57,7 @@ from rich.progress import track
             FROM emp 
             WHERE empno = 7934;
             SELECT * FROM emp WHERE sal > @EmployeeSal ORDER BY sal;
+        - On Boletin1_sol_test_sql I removed the ';' on the 21 exercise and I got no syntax error.
 """
 
 DB_CONNECTOR = "mysql+pymysql://user:bootcamp@172.30.1.156:3306"
@@ -68,7 +69,7 @@ def error_message(line_num:int|None, exercise_num:int|None, msg:str) -> str:
         return f"❌ [Error inesperado en el ejercicio {exercise_num}] {msg}\n"
     return f"❌ [Error inesperado] {msg}\n"
 
-def get_queries(file)->dict[int, tuple[str, list[str]]]:
+def get_queries(file)->tuple[dict[int, tuple[str, list[str]]], set[int]]:
     """
         Gets queries from a file. Multiple solutions can be made for the same exercise. It is expected
         that each solution for a exercise is preceeded by a commnent that starts with "-- {exercise_num}.".
@@ -96,10 +97,12 @@ def get_queries(file)->dict[int, tuple[str, list[str]]]:
     use_database_pattern = r"(?i)^\s*use\s+([\w\d_]+);"     # Pattern for identifying 'USE database1;' sql statements
     query_pattern = r"(?i)^\s*(?:select|with)\b"        # Pattern for catching queries (solutions to exercises)
     ignore_pattern = r"(?i)^-- ignore$"
+    end_of_query_pattern = r"^((?!--).)*;"
 
     current_db, current_exercise_num = None, None
 
     queries:dict[int, tuple[str, list[str]]] = {}
+    exercises = set()
 
     idx, lines = 0, file.readlines()
     while idx < len(lines):
@@ -114,6 +117,7 @@ def get_queries(file)->dict[int, tuple[str, list[str]]]:
         match = re.match(exercise_statement_pattern, line)
         if match:
             current_exercise_num = int(match.group(1))
+            exercises.add(current_exercise_num)
             idx += 1
             continue
 
@@ -126,9 +130,11 @@ def get_queries(file)->dict[int, tuple[str, list[str]]]:
         match = re.match(query_pattern, line)
         if match:
             query_start_idx = idx
-            while ';' not in line:
+            while not re.match(end_of_query_pattern, line):
                 idx += 1
                 line = lines[idx]
+                if re.match(exercise_statement_pattern, line):
+                    continue
             query = ''.join(lines[query_start_idx:idx + 1])
 
             if current_db is not None and current_exercise_num is not None:
@@ -138,7 +144,7 @@ def get_queries(file)->dict[int, tuple[str, list[str]]]:
 
         idx += 1
 
-    return queries
+    return queries, exercises
 
 class QueryResult(Enum):
     ORDER_ERROR = 1
@@ -344,7 +350,7 @@ def main():
     
     print("Obteniendo queries...")
     with open(args.path, 'r', encoding='utf-8') as file:
-        queries = get_queries(file)
+        queries, _= get_queries(file)
 
     results = check_queries(queries, args.boletin)
 
