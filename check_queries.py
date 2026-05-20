@@ -167,14 +167,13 @@ class QueryResult(str, Enum):
     ORDER_ERROR = 1
     CONTENT_ERROR = 2
     SYNTAX_ERROR = 3
-    CORRECT = 4
+    QUERY_RAN_ON_WONG_DB = 4
+    CORRECT = 5
 
 class ConnectionManager():
-    def __init__(self):
+    def __init__(self, databases:set[str]):
         self.connections:dict[str, Engine] = {}
-
-    def get_connection(self, database:str) -> Engine:
-        if database not in self.connections:
+        for database in databases:
             try:
                 con = create_engine(DB_CONNECTOR + f"/{database}")
                 with con.connect() as connection:
@@ -183,9 +182,26 @@ class ConnectionManager():
                 self.connections[database] = con
             except OperationalError:
                 raise RuntimeError(error_message(None, None, f"No se pudo encontrar o conectar a la base de datos: {database}. Asegúrate que tienes la VPN activada."))
-        
+
+    def get_connection(self, database:str) -> Engine:
         return self.connections[database]
-    
+
+class SolutionChecker():
+    def __init__(self, con_manager:ConnectionManager, boletin:int, max_exercise_num:int):
+        base_view_name = "solucion_ejercicio_" if boletin == 1 else "solucion_ejercicio_ventana_"
+        db_views = {db_name : inspect(db).get_view_names() for db_name, db in con_manager.connections.items()}
+
+        self.solutions:dict[int, str] = {}
+        for i in range(1, max_exercise_num + 1):
+            view = base_view_name + str(i)
+            for db_name, views in db_views.items():
+                if view in views:
+                    self.solutions[i] = db_name
+                    break
+
+    def check_solution(self, exercise_num:int) -> str | None:
+        return self.solutions.get(exercise_num, None)
+
 def check_queries(queries:dict[int, tuple[str, list[str]]], max_exercise_num:int, boletin:int)->dict[int, tuple[bool, list[tuple[str, QueryResult]]]]:
     """
         Runs provided queries and verifies they are correct comparing ther content and order with the solution
@@ -217,17 +233,14 @@ def check_queries(queries:dict[int, tuple[str, list[str]]], max_exercise_num:int
 
         return user_sorted.equals(expected_sorted)
 
-    def check_order(user_result:pd.DataFrame, expected_result:pd.DataFrame) -> bool:
-        return user_result.reset_index(drop=True).equals(expected_result.reset_index(drop=True))
-
-    def check_view_exists(db:Engine, view_name: str) -> bool:
-        inspector = inspect(db)
-        return view_name in inspector.get_view_names()
-
-    def check_exercise(db:Engine, exercise_num:int, queries:list[str], boletin:int)->tuple[bool, list[tuple[str, QueryResult]]]:
+    def check_exercise(db:Engine, sol_checker:SolutionChecker, exercise_num:int, queries:list[str], boletin:int)->tuple[bool, list[tuple[str, QueryResult]]]:
         view = f"solucion_ejercicio_{exercise_num}" if boletin == 1 else f"solucion_ejercicio_ventana_{exercise_num}"
-        if not check_view_exists(db, view):
+        sol_db_name = sol_checker.check_solution(exercise_num)
+        if sol_db_name is None:
             return False, []
+        
+        if sol_db_name != db.url.database:
+            return True, [(q, QueryResult.QUERY_RAN_ON_WONG_DB)  for q in queries]
 
         correct_query = f"select * from {view}"
         expected_result = pd.read_sql(correct_query, db)
@@ -256,21 +269,20 @@ def check_queries(queries:dict[int, tuple[str, list[str]]], max_exercise_num:int
 
         return True, results
 
-    con_manager = ConnectionManager()
+    con_manager = ConnectionManager(set(q[0] for q in queries.values()))
+    solution_checker = SolutionChecker(con_manager, boletin, max_exercise_num)
 
     results = {}
     for key, (database, qs) in track(queries.items(), description="Corrigiendo ejercicios: "):
         if key not in results:
-            results[key] = check_exercise(con_manager.get_connection(database), key, qs, boletin)
+            results[key] = check_exercise(con_manager.get_connection(database), solution_checker, key, qs, boletin)
         else:
             if results[key][0]:
-                results[key][1] += check_exercise(con_manager.get_connection(database), key, qs, boletin)[1]
+                results[key][1] += check_exercise(con_manager.get_connection(database), solution_checker, key, qs, boletin)[1]
 
-    db:Engine = next(iter(con_manager.connections.values()))
     for i in range(1, max_exercise_num + 1):
         if i not in results:
-            view = f"solucion_ejercicio_{i}" if boletin == 1 else f"solucion_ejercicio_ventana_{i}"
-            if check_view_exists(db, view):
+            if solution_checker.check_solution(i) is not None:
                 results[i] = (True, [])
             else:
                 results[i] = (False, [])
@@ -290,6 +302,7 @@ def print_results(results:dict[int, tuple[bool, list[tuple[str, QueryResult]]]],
     no_solution = []
     no_queries_run = []
     exercises_with_errors = []
+    wrong_db_exercises = set()
     total_queries = 0
     correct_queries = 0
     correct_exercises = 0
@@ -313,6 +326,9 @@ def print_results(results:dict[int, tuple[bool, list[tuple[str, QueryResult]]]],
                 exercise_correct = False
                 exercises_with_errors.append((exercise_num, query, result))
 
+                if result == QueryResult.QUERY_RAN_ON_WONG_DB:
+                    wrong_db_exercises.add(exercise_num)
+
         if exercise_correct:
             correct_exercises += 1
 
@@ -331,6 +347,8 @@ def print_results(results:dict[int, tuple[bool, list[tuple[str, QueryResult]]]],
                 print(f"    🟡 Order error:\n{query}")
             elif result == QueryResult.SYNTAX_ERROR:
                 print(f"    🟠 Syntax error:\n{query}")
+            elif result == QueryResult.QUERY_RAN_ON_WONG_DB:
+                print(f"    🛑 Query being ran on wrong database:\n{query}")
 
     # Print summary
     total_exercises = len(results)
@@ -344,6 +362,8 @@ def print_results(results:dict[int, tuple[bool, list[tuple[str, QueryResult]]]],
         print(f"  🚫  { 'Exercises with a solution but no queries submitted:':<55} {len(no_queries_run)} exercise(s) → {', '.join(map(str, no_queries_run))}")
     if no_solution:
         print(f"  ⚠️   { 'Exercises with no solution:':<55} {len(no_solution)} exercise(s) → {', '.join(map(str, no_solution))}")
+    if wrong_db_exercises:
+        print(f"  ⛔   { 'Exercises ran on wrong db:':<55} {len(wrong_db_exercises)} exercise(s) → {', '.join(map(str, wrong_db_exercises))}")
     if correct_queries == total_queries and correct_exercises == exercises_attempted and not no_queries_run:
         print("\n")
         print("🟢 🥳🎉Enhorabuena!🎉🥳 🟢")
