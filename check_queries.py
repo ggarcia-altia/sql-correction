@@ -105,7 +105,7 @@ class QueryResult(str, Enum):
     CORRECT = 5
 
 class ConnectionManager():
-    def __init__(self, databases:set[str]):
+    def __init__(self, databases:set[str]={"jardineria", "basic_employees", "wf", "videoclub"}):
         self.connections:dict[str, Engine] = {}
         for database in databases:
             try:
@@ -203,7 +203,7 @@ def check_queries(queries:dict[int, tuple[str, list[str]]], max_exercise_num:int
 
         return True, results
 
-    con_manager = ConnectionManager(set(q[0] for q in queries.values()))
+    con_manager = ConnectionManager()
     solution_checker = SolutionChecker(con_manager, boletin, max_exercise_num)
 
     results = {}
