@@ -1,7 +1,7 @@
-# Script the corrección de ejercicios de SQL
+# Script de corrección de ejercicios de SQL
 
 ## 📒 Sobre el script
-Este script sirve para corregir los ejercicios de sql de los boletines 1 y 3 del datacamp de Altia. Los boletines 1 y 2 no se pueden corregir porque no tienen soluciones.
+Este script sirve para corregir los ejercicios de sql de los boletines 1 y 3 del datacamp de Altia. Los boletines 2 y 4 no se pueden corregir porque no tienen soluciones.
 
 ## 🔧 Funcionamiento
 Este script realiza las siguientes fases:
@@ -51,8 +51,9 @@ Para que un boletín se pueda corregir de forma correcta con este script este sc
     ```sql
     select nombre, edad, apellido from …
     ```
-    Como se puede observar, las columnas no necesitan tener el mismo orden.
-    Si una sentencia de sql no empieza con use, select o with se ignorará. Las sentencias use se tienen que usar para elegir la base de datos donde se ejecutará el ejercicio. Su uso es obligatorio ya que de ello depende que el script sepa en qué base de datos hay que ejecutar un ejercicio. Por ejemplo, si el ejercicio 13 se ejecuta en una base de datos distinta al ejercicio 12 y 14, habrá que incluir antes y después del ejercicio 13 las sentencias use adecuadas para esto.
+    Como se puede observar, las columnas no necesitan tener el mismo nombre.
+
+- Si una sentencia de sql no empieza con use, select o with se ignorará. Las sentencias use se tienen que usar para elegir la base de datos donde se ejecutará el ejercicio. Su uso es obligatorio ya que de ello depende que el script sepa en qué base de datos hay que ejecutar un ejercicio. Por ejemplo, si el ejercicio 13 se ejecuta en una base de datos distinta al ejercicio 12 y 14, habrá que incluir antes y después del ejercicio 13 las sentencias use adecuadas para esto.
 - No se pueden escribir varias sentencias de sql en la misma línea, esto resultará en un comportamiento erróneo.
 - No se pueden usar queries donde se usan variables definidas en otras sentencias:
     ```sql
@@ -66,7 +67,7 @@ Sin embargo, tienes flexibilidad para:
 - Añadir tus propios comentarios que se ignorarán: puedes añadir aclaraciones a tus consultas (ya sea en las misma líneas de la consulta o en otra distinta), comentar consultas enteras o modificar el enunciado de un ejercicio (siempre que no cambies el número del ejercicio).
 - Puedes escribir varias soluciones para un ejercicio.
 - Puedes dejar líneas en blanco entre soluciones o entre líneas de una solución.
-- Puedes escribir las key words the sql en mayúsculas o minúsculas (`select` o `SELECT`, `use` o `USE`, `from` o `FROM` ...)
+- Puedes escribir las key words de sql en mayúsculas o minúsculas (`select` o `SELECT`, `use` o `USE`, `from` o `FROM` ...)
 - Los resultados de tu query no han de tener el mismo orden que la solución.
 
 Si en algún momento quieres que se ignoren consultas y no quieres tener que comentarlas todas puedes usar ```-- ignore``` o ```-- IGNORE```. Cuando se encuentre este comentario se ignorarán todas las consultas select o with que se encuentren entre este bloque y el próximo ejercicio. Ten en cuenta que las sentencias use no se ignorarán aunque estén después de un ignore.
