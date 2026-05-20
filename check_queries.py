@@ -28,11 +28,11 @@ from rich.progress import track
     carácteres después de esa cadena, serán ignorados). Ejemplo:
 
     - Si quieres que unas queries se ignoren escribe "-- ignore" y todas las queries que estén entre este comentario y
-    el enunciado del siguiente ejercicio serán ingoradas.
+    el enunciado del siguiente ejercicio serán ignoradas.
 
     - Ten en cuenta que tus soluciones se ejecutarán en orden cambiando de base de datos cuando aparece una sentencia
-    USE de sql. Si el ejercicio X se ejecuta en la base de datos A y el ejercicio X+1 se ejecuta en la base de datos B,
-    tendrás que incluir una sentencia "USE ...;" antes de las queries del ejericico X+1 para que se cambie de base de datos y se
+    USE de sql. Si el ejercicio 4 se ejecuta en la base de datos A y el ejercicio 5 se ejecuta en la base de datos B,
+    tendrás que incluir una sentencia "USE ...;" antes de las queries del ejercico 5 para que se cambie de base de datos y se
     puedan ejecutar sus soluciones.
 
     - No escribas varias queries en la misma línea, esto probablemente cause que se ignoren todas las queries de esa línea
@@ -48,8 +48,8 @@ from rich.progress import track
         SELECT * FROM emp WHERE sal > @EmployeeSal ORDER BY sal;
 
     Ejemplo:
-        use basic_eployees;
-        -- 1. Enunciado ejercico 1 bla bla (puedes cambiar el enunicado si quieres con tal de que no cambies el -- 1.)
+        use basic_employees;
+        -- 1. Enunciado ejercico 1 bla bla (puedes cambiar el enuncado si quieres con tal de que no cambies el -- 1.)
         -- Puedes añadir comentarios aquí, serán ignorados siempre que no empiecen por -- X.
         select ... -- Query del ejercicio 1
         select ... -- Otra query del ejercicio 1
@@ -65,7 +65,7 @@ from rich.progress import track
         -- 4. Enunciado ejercio 4 en basic employees bla bla
         select ... -- Solución del ejercico 4
 
-    💻 Para ejecutar este script en windos usando VS Code:
+    💻 Para ejecutar este script en Windows usando VS Code:
         1. Instala python
         2. Pulsando CTRL + shift + p, pulsa en la opción "Python: Create Environment", elige venv
         y selecciona un interpretador.
@@ -73,7 +73,6 @@ from rich.progress import track
         4. Instala dependencias con "pip install sqlalchemy pandas pymysql rich"
         5. Ejecuta el archivo (cambiando la ruta y el número de boletin como corresponda):
             python check_queries.py tu_ruta_a_tu_boletin1.sql 1
-
 """
 
 DB_CONNECTOR = "mysql+pymysql://user:bootcamp@172.30.1.156:3306"
@@ -147,10 +146,11 @@ def get_queries(file)->tuple[dict[int, tuple[str, list[str]]], int]:
         match = re.match(query_pattern, line)
         if match:
             query_start_idx = idx
-            while not re.match(end_of_query_pattern, line):
+            while not re.match(end_of_query_pattern, line) and not re.match(exercise_statement_pattern, line):
                 idx += 1
                 line = lines[idx]
                 if re.match(exercise_statement_pattern, line):
+                    idx -= 1
                     continue
             query = ''.join(lines[query_start_idx:idx + 1])
 
@@ -163,7 +163,7 @@ def get_queries(file)->tuple[dict[int, tuple[str, list[str]]], int]:
 
     return queries, max_exercise_num
 
-class QueryResult(Enum):
+class QueryResult(str, Enum):
     ORDER_ERROR = 1
     CONTENT_ERROR = 2
     SYNTAX_ERROR = 3

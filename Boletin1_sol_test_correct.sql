@@ -513,10 +513,10 @@ WHERE ep.prono IN (
 	GROUP BY prono 
 	HAVING COUNT(empno) = 1
 );
-
+-- nqwnlwqkndlkw
 SELECT ename
 FROM (
-    SELECT 
+    SELECT  -- nolwendlnwk
         e.empno, 
         e.ename,
         COUNT(ep.empno) OVER(PARTITION BY ep.prono) as workers_on_proj

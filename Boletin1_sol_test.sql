@@ -9,8 +9,7 @@ SELECT * FROM solucion_ejercicio_1;
 
 -- 2. Halla los empleados que no tienen comisión, o que la tengan menor o igual que el 25% de su salario.
 -- This could be optimized with bit shifts (?)
-SELECT * FROM emp e WHERE e.comm IS NULL OR e.comm * 4 <= e.sal;
-SELECT * FROM solucion_ejercicio_2;
+SELECT * FROM emp e WHERE e.comm IS NULL OR e.comm * 4 <= e.sal
 
 -- 3. Obtén los empleados que no son supervisados por ningún otro.
 SELECT * FROM emp e WHERE e.mgr IS NULL;
